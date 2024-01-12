@@ -4,7 +4,7 @@
   "description": "bot-zdg: based on Whatsapp API",
   "main": "app.js",
   "scripts": {
-    "start": "node .\botzdg_typebot_stop.js",
+    "start": "node .\botzdg_typebot_botoes.js",
     "start:dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
