@@ -51,7 +51,7 @@ const client = new Client({
     //executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     //===================================================================================
     // CAMINHO DO CHROME PARA LINUX (REMOVER O COMENTÁRIO ABAIXO)
-    //executablePath: '/usr/bin/google-chrome-stable',
+    executablePath: '/usr/bin/google-chrome-stable',
     //===================================================================================
     args: [
       '--no-sandbox',
@@ -243,8 +243,85 @@ client.on('message', async msg => {
   }
 });
 
+// EVENTO DE ESCUTA DAS RESPOSTAS DO BOTÃO
+client.on('vote_update', async (vote) => {
+  console.log(vote.selectedOptions.map(option => option.name))
+  const from = vote.voter.replace(/\D/g,'');
+  const sessionId = fs.readFileSync("./typebot/" + from + "/typebot.json","utf8").split(':')[1].replace(/\W/g, '');
+  const content = vote.selectedOptions.map(option => option.name);
+  client.sendMessage(vote.voter, 'Você escolheu a opção: ' + content.toString() + '... aguarde!')
+  const reqData = {
+    message: content.toString(),
+    sessionId: sessionId,
+  };
+  const request = await axios.post(url, reqData);
+  const messages = request.data.messages
+  for (const message of messages){
+      if (message.type === 'text') {
+        let formattedText = '';
+        for (const richText of message.content.richText){
+          for (const element of richText.children){
+            let text = '';
+            if (element.text) {
+                text = element.text;
+            }
+            if (element.bold) {
+                text = `*${text}*`;
+            }
+            if (element.italic) {
+                text = `_${text}_`;
+            }
+            if (element.underline) {
+                text = `~${text}~`;
+            }
+            formattedText += text;
+          }
+          formattedText += '\n';
+        }
+        formattedText = formattedText.replace(/\n$/, '');
+        await client.sendMessage(vote.voter, formattedText);
+      }
+      if (message.type === 'image' || message.type === 'video') {
+        console.log(message)
+        try{
+          const media = await MessageMedia.fromUrl(message.content.url)
+          await client.sendMessage(vote.voter, media, {caption: 'Comunidade ZDG'})
+        }catch(e){}
+      }
+      if (message.type === 'audio') {
+        console.log(message)
+        try{
+          const media = await MessageMedia.fromUrl(message.content.url)
+          await client.sendMessage(vote.voter, media, {sendAudioAsVoice: true})
+        }catch(e){}
+      }
+  }
+  const input = request.data.input
+  if (input) {
+      if (input.type === 'choice input') {
+        let formattedText = '';
+        const items = input.items;
+        let arrayoptions = [];
+        for (const item of items) {
+          formattedText += `▶️ ${item.content}\n`;
+          arrayoptions.push(item.content);
+        }
+        console.log(arrayoptions)
+          // await msg.reply(new Poll('Winter or Summer?', [arrayoptions]));
+          // formattedText = formattedText.replace(/\n$/, '');
+          await client.sendMessage(vote.voter, new Poll('Escolha uma opção:', arrayoptions));
+        }
+  }
+  console.log(vote)
+  const msgToEdit = vote.parentMessage
+  // await msgToEdit.delete(true)
+  msgToEdit.body.replace('Escolha uma opção:', 'Resposta armazenada')
+  await msgToEdit.delete(true)
+  // await client.sendMessage(vote.voter, 'Você escolheu a opção: ' + content.toString())
+  // await msgToEdit.pollOptions.replace(msgToEdit.pollOptions, [''])
+});
+
 // INITIALIZE DO SERVIÇO
 server.listen(port, function() {
   console.log('© Comunidade ZDG - Aplicativo rodando na porta *: ' + port);
 });
-Um poderoso sistema de blocos integrado ao whatsapp do seu negócio
